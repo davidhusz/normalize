@@ -1,0 +1,90 @@
+#!/usr/bin/env python3
+
+
+import sys, argparse
+from bs4 import UnicodeDammit
+
+
+def normalize(buffer):
+    # Convert encoding
+    dammit = UnicodeDammit(buffer)
+    encoding = dammit.original_encoding
+    if encoding == 'utf-8' and buffer[:3] == b'\xef\xbb\xbf':
+        encoding = 'utf-8-bom'
+    buffer = dammit.unicode_markup.encode('utf-8')
+    log(f'Converting {encoding} to utf-8')
+    
+    # Convert line terminators
+    if buffer.count(b'\r\n') > 0:
+        line_terminator = 'CRLF'
+        buffer = buffer.replace(b'\r\n', b'\n')
+        log('Converting CRLF line terminators to LF')
+    elif buffer.count(b'\r') > buffer.count(b'\n'):
+        line_terminator = 'CR'
+        log('Converting CR line terminators to LF')
+        buffer = buffer.replace(b'\r', b'\n')
+    else:
+        line_terminator = 'LF'
+    
+    # Ensure trailing newline
+    if not buffer.endswith(b'\n'):
+        log('Adding trailing newline')
+        buffer = buffer + b'\n'
+    
+    return buffer
+
+
+def log(message):
+    if args.verbose:
+        print(f'DEBUG: normalize: {message}', file = sys.stderr)
+
+
+def main():
+    global args
+    parser = argparse.ArgumentParser()
+    parser.add_argument('input', nargs = '*', default = [sys.stdin], type = argparse.FileType('rb'))
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-o', '--output', default = sys.stdout.buffer, type = argparse.FileType('wb'))
+    group.add_argument('-i', '--in-place', action = 'store_true')
+    # group.add_argument('--check', action = 'store_true')
+    parser.add_argument('-v', '--verbose', action = 'store_true')
+    args = parser.parse_args()
+    # add option for just analyzing the file(s), no actual modifications
+    # also: ensure idempotence (`normalize` yields the same output as `normalize | normalize | normalize | ...`)
+
+    if len(sys.argv[1:]) == 0 and sys.stdin.isatty():
+        parser.print_help()
+        exit()
+    
+    # running `./normalize.py notes.md |:` leads to the following error:
+    # BrokenPipeError: [Errno 32] Broken pipe
+    # have a look at this possible solution:
+    # https://stackoverflow.com/a/35761190
+
+    if not args.in_place:
+        if args.output == sys.stdout:
+            args.output = sys.stdout.buffer
+        for file in args.input:
+            log(f'Processing {file.name}')
+            if file == sys.stdin:
+                file = sys.stdin.buffer
+            normalized = normalize(file.read())
+            file.close()
+            args.output.write(normalized)
+        args.output.close()
+    else:
+        for file in args.input:
+            if file == sys.stdin:
+                sys.stderr.write('Error: cannot modify stdin in place\n')
+                # or maybe just write to stdout in that case?
+            else:
+                fname = file.name
+                normalized = normalize(file.read())
+                file.close()
+                output = open(fname, 'wb')
+                output.write(normalized)
+                output.close()
+
+
+if __name__ == '__main__':
+    main()
