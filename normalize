@@ -18,8 +18,8 @@ def normalize(buffer):
     # Convert line terminators
     if buffer.count(b'\r\n') > 0:
         line_terminator = 'CRLF'
-        buffer = buffer.replace(b'\r\n', b'\n')
         log('Converting CRLF line terminators to LF')
+        buffer = buffer.replace(b'\r\n', b'\n')
     elif buffer.count(b'\r') > buffer.count(b'\n'):
         line_terminator = 'CR'
         log('Converting CR line terminators to LF')
