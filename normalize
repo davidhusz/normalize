@@ -11,8 +11,9 @@ def normalize(buffer):
     encoding = dammit.original_encoding
     if encoding == 'utf-8' and buffer[:3] == b'\xef\xbb\xbf':
         encoding = 'utf-8-bom'
+    if not (encoding == 'ascii' or encoding == 'utf-8'):
+        log(f'Converting {encoding} encoding to utf-8')
     buffer = dammit.unicode_markup.encode('utf-8')
-    log(f'Converting {encoding} to utf-8')
     
     # Convert line terminators
     if buffer.count(b'\r\n') > 0:
