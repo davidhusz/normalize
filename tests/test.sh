@@ -14,7 +14,7 @@
 set -euo pipefail  # strict mode
 
 exec_dir=$PWD
-repo_dir=$(realpath $(dirname "$0")/..)
+repo_dir=$(realpath "$(dirname "$0")/..")
 test $# = 0 && set "$repo_dir/"tests/*/
 errors=0
 
@@ -23,7 +23,7 @@ for dir in "$@"; do
     mkdir -p processed
     for file in *.txt; do
         # echo "Processing '$file'..."
-        "$repo_dir/"normalize -v $file -o processed/$file
+        "$repo_dir/"normalize -v "$file" -o "processed/$file"
         echo  # empty line for visual separation
     done
     
