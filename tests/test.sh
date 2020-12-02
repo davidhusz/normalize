@@ -24,7 +24,6 @@ for dir in "$@"; do
     for file in *.txt; do
         # echo "Processing '$file'..."
         "$repo_dir/"normalize -v "$file" -o "processed/$file"
-        echo  # empty line for visual separation
     done
     
     # cd processed
@@ -43,7 +42,7 @@ for dir in "$@"; do
         rm -r processed
     fi
     
-    echo  # visual separation
+    echo  # empty line for visual separation
 done
 
 if [ $errors = 0 ]; then
