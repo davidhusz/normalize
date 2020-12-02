@@ -6,6 +6,8 @@ from bs4 import UnicodeDammit
 
 
 def normalize(buffer):
+    global changes
+    
     # Convert encoding
     dammit = UnicodeDammit(buffer)
     encoding = dammit.original_encoding
@@ -13,6 +15,7 @@ def normalize(buffer):
         encoding = 'utf-8-bom'
     if not (encoding == 'ascii' or encoding == 'utf-8'):
         log(f'Converting {encoding} encoding to utf-8')
+        changes = True
     buffer = dammit.unicode_markup.encode('utf-8')
     
     # Convert line terminators
@@ -20,10 +23,12 @@ def normalize(buffer):
         line_terminator = 'CRLF'
         log('Converting CRLF line terminators to LF')
         buffer = buffer.replace(b'\r\n', b'\n')
+        changes = True
     elif buffer.count(b'\r') > buffer.count(b'\n'):
         line_terminator = 'CR'
         log('Converting CR line terminators to LF')
         buffer = buffer.replace(b'\r', b'\n')
+        changes = True
     else:
         line_terminator = 'LF'
     
@@ -31,6 +36,7 @@ def normalize(buffer):
     if not buffer.endswith(b'\n'):
         log('Adding trailing newline')
         buffer = buffer + b'\n'
+        changes = True
     
     return buffer
 
@@ -41,16 +47,16 @@ def log(message):
 
 
 def main():
-    global args, current_file
+    global args, current_file, changes
+    changes = False
     parser = argparse.ArgumentParser()
     parser.add_argument('input', nargs = '*', default = [sys.stdin], type = argparse.FileType('rb'))
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-o', '--output', default = sys.stdout.buffer, type = argparse.FileType('wb'))
     group.add_argument('-i', '--in-place', action = 'store_true')
-    # group.add_argument('--check', action = 'store_true')
+    group.add_argument('--check', action = 'store_true')
     parser.add_argument('-v', '--verbose', action = 'store_true')
     args = parser.parse_args()
-    # add option for just analyzing the file(s), no actual modifications
     # also: ensure idempotence (`normalize` yields the same output as `normalize | normalize | normalize | ...`)
 
     if len(sys.argv[1:]) == 0 and sys.stdin.isatty():
@@ -62,7 +68,7 @@ def main():
     # have a look at this possible solution:
     # https://stackoverflow.com/a/35761190
 
-    if not args.in_place:
+    if not args.in_place and not args.check:
         if args.output == sys.stdout:
             args.output = sys.stdout.buffer
         for file in args.input:
@@ -73,7 +79,7 @@ def main():
             file.close()
             args.output.write(normalized)
         args.output.close()
-    else:
+    elif args.in_place:
         for file in args.input:
             if file == sys.stdin:
                 sys.stderr.write('Error: cannot modify stdin in place\n')
@@ -85,6 +91,13 @@ def main():
                 output = open(fname, 'wb')
                 output.write(normalized)
                 output.close()
+    elif args.check:
+        for file in args.input:
+            current_file = file.name
+            normalize(file.read())
+            file.close()
+        if changes:
+            exit(1)
 
 
 if __name__ == '__main__':
