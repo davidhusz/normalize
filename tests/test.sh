@@ -22,11 +22,9 @@ for dir in "$@"; do
     cd "$exec_dir/$dir" 2> /dev/null || cd "$dir"  # hacky, could be improved
     mkdir -p processed
     for file in *.txt; do
-        # echo "Processing '$file'..."
         "$repo_dir/"normalize -v "$file" -o "processed/$file"
     done
     
-    # cd processed
     errors_in_this_dir=0
     for file in *.txt; do
         if ! diff "$repo_dir/tests/goldstandard.txt" \
@@ -38,16 +36,16 @@ for dir in "$@"; do
     done
     
     if [ $errors_in_this_dir = 0 ]; then
-        # cd ..
         rm -r processed
     fi
     
     echo  # empty line for visual separation
 done
 
+cd ..
 if [ $errors = 0 ]; then
     echo "All files identical. Test successful."
 else
-    echo "Errors occured. See 'processed' folders."
+    echo "Errors occured. See the following folders: $(ls -d */processed)"
     exit 1
 fi
