@@ -1,0 +1,1 @@
+This is a text file.It has multiple lines.Here are some non-ascii characters: äöü
