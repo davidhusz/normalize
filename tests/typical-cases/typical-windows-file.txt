@@ -1,3 +1,3 @@
 This is a text file.
 It has multiple lines.
-Here are some non-ascii characters: Ã¤Ã¶Ã¼
+Here are some non-ascii characters: äöü
