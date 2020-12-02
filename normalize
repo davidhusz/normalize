@@ -9,7 +9,7 @@ def normalize(buffer):
     global changes
     
     # Convert encoding
-    dammit = UnicodeDammit(buffer)
+    dammit = UnicodeDammit(buffer, ['utf-8'])
     encoding = dammit.original_encoding
     if encoding == 'utf-8' and buffer[:3] == b'\xef\xbb\xbf':
         encoding = 'utf-8-bom'
