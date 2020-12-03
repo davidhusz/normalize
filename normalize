@@ -56,6 +56,7 @@ def main():
     group.add_argument('-i', '--in-place', action = 'store_true')
     group.add_argument('-n', '--dry-run', action = 'store_true')
     parser.add_argument('-v', '--verbose', action = 'store_true')
+    parser.add_argument('--version', action = 'version', version = '0.1')
     args = parser.parse_args()
     # also: ensure idempotence (`normalize` yields the same output as `normalize | normalize | normalize | ...`)
 
