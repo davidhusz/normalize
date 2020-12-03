@@ -54,7 +54,7 @@ def main():
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-o', '--output', default = sys.stdout.buffer, type = argparse.FileType('wb'))
     group.add_argument('-i', '--in-place', action = 'store_true')
-    group.add_argument('--check', action = 'store_true')
+    group.add_argument('-n', '--dry-run', action = 'store_true')
     parser.add_argument('-v', '--verbose', action = 'store_true')
     args = parser.parse_args()
     # also: ensure idempotence (`normalize` yields the same output as `normalize | normalize | normalize | ...`)
@@ -68,7 +68,7 @@ def main():
     # have a look at this possible solution:
     # https://stackoverflow.com/a/35761190
 
-    if not args.in_place and not args.check:
+    if not args.in_place and not args.dry_run:
         if args.output == sys.stdout:
             args.output = sys.stdout.buffer
         for file in args.input:
@@ -91,13 +91,12 @@ def main():
                 output = open(fname, 'wb')
                 output.write(normalized)
                 output.close()
-    elif args.check:
+    elif args.dry_run:
+        args.verbose = True
         for file in args.input:
             current_file = file.name
             normalize(file.read())
             file.close()
-        if changes:
-            exit(1)
 
 
 if __name__ == '__main__':
