@@ -85,10 +85,10 @@ def main():
                 sys.stderr.write('Error: cannot modify stdin in place\n')
                 # or maybe just write to stdout in that case?
             else:
-                fname = current_file = file.name
+                current_file = file.name
                 normalized = normalize(file.read())
                 file.close()
-                output = open(fname, 'wb')
+                output = open(current_file, 'wb')
                 output.write(normalized)
                 output.close()
     elif args.dry_run:
