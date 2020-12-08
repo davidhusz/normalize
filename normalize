@@ -3,6 +3,8 @@
 
 import sys, argparse
 from bs4 import UnicodeDammit
+import re
+import os
 
 
 def normalize(buffer):
@@ -46,6 +48,18 @@ def log(message):
         print(f'DEBUG: normalize: {current_file}: {message}', file = sys.stderr)
 
 
+def get_vars(fpath):
+    fname = os.path.basename(fpath)
+    vars = {
+        'fpath': fpath,
+        'fname': fname,
+        'fdir': os.path.dirname(fpath),
+        'fbase': os.path.splitext(fname)[0],
+        'fext': os.path.splitext(fname)[1]
+    }
+    return vars
+
+
 def main():
     global args, current_file, changes
     changes = False
@@ -55,6 +69,7 @@ def main():
     group.add_argument('-o', '--output', default = sys.stdout.buffer, type = argparse.FileType('wb'))
     group.add_argument('-i', '--in-place', action = 'store_true')
     group.add_argument('-n', '--dry-run', action = 'store_true')
+    parser.add_argument('--backup')
     parser.add_argument('-v', '--verbose', action = 'store_true')
     parser.add_argument('--version', action = 'version', version = '0.1')
     args = parser.parse_args()
@@ -63,6 +78,9 @@ def main():
     if len(sys.argv[1:]) == 0 and sys.stdin.isatty():
         parser.print_help()
         exit()
+    
+    if args.backup and not args.in_place:
+        sys.stderr.write('Warning: --backup only makes sense when used with --in-place\n')
     
     # running `./normalize.py notes.md |:` leads to the following error:
     # BrokenPipeError: [Errno 32] Broken pipe
@@ -76,28 +94,46 @@ def main():
             current_file = file.name
             if file == sys.stdin:
                 file = sys.stdin.buffer
-            normalized = normalize(file.read())
+            file_contents = file.read()
             file.close()
+            normalized = normalize(file_contents)
             args.output.write(normalized)
+            # args.output.flush()
         args.output.close()
     elif args.in_place:
         for file in args.input:
             if file == sys.stdin:
                 sys.stderr.write('Error: cannot modify stdin in place\n')
-                # or maybe just write to stdout in that case?
             else:
                 current_file = file.name
-                normalized = normalize(file.read())
+                file_contents = file.read()
                 file.close()
-                output = open(current_file, 'wb')
-                output.write(normalized)
-                output.close()
+                normalized = normalize(file_contents)
+                if args.backup:
+                    vars = get_vars(file.name)
+                    backup_filename = re.sub(r'\$(' + '|'.join(vars) + ')',
+                                             lambda var: vars[var.group(1)],
+                                             args.backup)
+                    try:
+                        backup_file = open(backup_filename, 'wb')
+                        backup_file.write(file_contents)
+                        backup_file.close()
+                    except PermissionError:
+                        sys.stderr.write('Error: cannot create backup file\n')
+                        continue
+                try:
+                    output = open(current_file, 'wb')
+                    output.write(normalized)
+                    output.close()
+                except PermissionError:
+                    sys.stderr.write('Error: cannot write to file\n')
     elif args.dry_run:
         args.verbose = True
         for file in args.input:
             current_file = file.name
-            normalize(file.read())
+            file_contents = file.read()
             file.close()
+            normalize(file_contents)
 
 
 if __name__ == '__main__':
